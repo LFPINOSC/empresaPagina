@@ -25,20 +25,22 @@ public class UsuarioServicio {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    public Usuario crearUsuario(Usuario usuario) {
 
-    // =========================================================
-    // LISTAR USUARIOS
-    // =========================================================
+        usuario.setPassword(
+            passwordEncoder.encode(
+                usuario.getPassword()
+            )
+        );
 
+        return usuarioRepositorio.save(usuario);
+    }
+    
     public List<Usuario> listarUsuarios() {
 
         return usuarioRepositorio.findAll();
     }
 
-
-    // =========================================================
-    // BUSCAR USUARIO POR ID
-    // =========================================================
 
     public Usuario buscarPorId(Long id) {
 
@@ -51,10 +53,6 @@ public class UsuarioServicio {
     }
 
 
-    // =========================================================
-    // BUSCAR USUARIO POR USERNAME
-    // =========================================================
-
     public Usuario buscarPorUsername(String username) {
 
         return usuarioRepositorio
@@ -66,21 +64,11 @@ public class UsuarioServicio {
                 );
     }
 
-
-    // =========================================================
-    // REGISTRO PÚBLICO
-    // CREA USUARIO USER + CLIENTE
-    // =========================================================
-
     @Transactional
     public Usuario registrarUsuarioConCliente(
             String username,
             String password,
             Cliente cliente) {
-
-        // -----------------------------------------------------
-        // Validar usuario
-        // -----------------------------------------------------
 
         if (usuarioRepositorio.existsByUsername(username)) {
 
@@ -88,11 +76,6 @@ public class UsuarioServicio {
                 "El nombre de usuario ya existe"
             );
         }
-
-
-        // -----------------------------------------------------
-        // Validar cliente
-        // -----------------------------------------------------
 
         if (cliente == null) {
 
@@ -102,10 +85,6 @@ public class UsuarioServicio {
         }
 
 
-        // -----------------------------------------------------
-        // Validar cédula
-        // -----------------------------------------------------
-
         if (cliente.getCedula() == null ||
             cliente.getCedula().isBlank()) {
 
@@ -113,11 +92,6 @@ public class UsuarioServicio {
                 "La cédula del cliente es obligatoria"
             );
         }
-
-
-        // -----------------------------------------------------
-        // Verificar cédula existente
-        // -----------------------------------------------------
 
         if (clienteRepositorio
                 .existsByCedula(cliente.getCedula())) {
@@ -129,17 +103,8 @@ public class UsuarioServicio {
         }
 
 
-        // -----------------------------------------------------
-        // Guardar cliente
-        // -----------------------------------------------------
-
         Cliente clienteGuardado =
                 clienteRepositorio.save(cliente);
-
-
-        // -----------------------------------------------------
-        // Crear usuario
-        // -----------------------------------------------------
 
         Usuario usuario = new Usuario();
 
@@ -317,5 +282,84 @@ public class UsuarioServicio {
         Usuario usuario = buscarPorId(id);
 
         usuarioRepositorio.delete(usuario);
+    }
+    public Usuario actualizarPerfil(
+            Long id,
+            Usuario datos
+    ) {
+
+        Usuario usuario =
+                usuarioRepositorio
+                        .findById(id)
+                        .orElseThrow(() ->
+                            new RuntimeException(
+                                "Usuario no encontrado"
+                            )
+                        );
+
+        if (datos.getUsername() != null &&
+            !datos.getUsername().trim().isEmpty()) {
+
+            String nuevoUsername =
+                    datos.getUsername().trim();
+
+            if (!nuevoUsername.equals(
+                    usuario.getUsername())) {
+
+                if (usuarioRepositorio
+                        .existsByUsername(nuevoUsername)) {
+
+                    throw new RuntimeException(
+                        "El nombre de usuario ya existe"
+                    );
+                }
+
+                usuario.setUsername(
+                    nuevoUsername
+                );
+            }
+        }
+
+        if (datos.getPassword() != null &&
+            !datos.getPassword().trim().isEmpty()) {
+            usuario.setPassword(
+                passwordEncoder.encode(
+                    datos.getPassword()
+                )
+            );
+        }
+
+        if (usuario.getCliente() != null &&
+            datos.getCliente() != null) {
+
+            if (datos.getCliente().getNombre() != null) {
+
+                usuario.getCliente().setNombre(
+                    datos.getCliente().getNombre()
+                );
+            }
+
+            if (datos.getCliente().getDireccion() != null) {
+
+                usuario.getCliente().setDireccion(
+                    datos.getCliente().getDireccion()
+                );
+            }
+
+            if (datos.getCliente().getTelefono() != null) {
+
+                usuario.getCliente().setTelefono(
+                    datos.getCliente().getTelefono()
+                );
+            }
+
+            if (datos.getCliente().getCorreo() != null) {
+
+                usuario.getCliente().setCorreo(
+                    datos.getCliente().getCorreo()
+                );
+            }
+        }
+        return usuarioRepositorio.save(usuario);
     }
 }

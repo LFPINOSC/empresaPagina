@@ -1,15 +1,20 @@
 package com.api.empresa.Controladores;
 
-import java.util.List;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
 
 import com.api.empresa.Entidades.Rol;
 import com.api.empresa.Entidades.Usuario;
 import com.api.empresa.Servicios.UsuarioServicio;
+
+import jakarta.validation.Valid;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/usuarios")
@@ -19,25 +24,29 @@ public class UsuarioControlador {
     private UsuarioServicio usuarioServicio;
 
 
-    // =========================================================
-    // LISTAR USUARIOS
-    // ADMIN
-    // =========================================================
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping
+    public ResponseEntity<Usuario> crearUsuario(
+            @Valid @RequestBody Usuario usuario) {
+
+        Usuario usuarioCreado =
+                usuarioServicio.crearUsuario(usuario);
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(usuarioCreado);
+    }
+
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<List<Usuario>> listarUsuarios() {
 
         return ResponseEntity.ok(
-            usuarioServicio.listarUsuarios()
+                usuarioServicio.listarUsuarios()
         );
     }
 
-
-    // =========================================================
-    // BUSCAR USUARIO POR ID
-    // ADMIN
-    // =========================================================
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/{id}")
@@ -45,15 +54,10 @@ public class UsuarioControlador {
             @PathVariable Long id) {
 
         return ResponseEntity.ok(
-            usuarioServicio.buscarPorId(id)
+                usuarioServicio.buscarPorId(id)
         );
     }
 
-
-    // =========================================================
-    // CAMBIAR ESTADO
-    // ADMIN
-    // =========================================================
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}/estado")
@@ -62,18 +66,10 @@ public class UsuarioControlador {
             @RequestParam boolean activo) {
 
         return ResponseEntity.ok(
-            usuarioServicio.cambiarEstado(
-                id,
-                activo
-            )
+                usuarioServicio.cambiarEstado(id, activo)
         );
     }
 
-
-    // =========================================================
-    // CAMBIAR ROL
-    // ADMIN
-    // =========================================================
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}/rol")
@@ -82,18 +78,9 @@ public class UsuarioControlador {
             @RequestParam Rol rol) {
 
         return ResponseEntity.ok(
-            usuarioServicio.cambiarRol(
-                id,
-                rol
-            )
+                usuarioServicio.cambiarRol(id, rol)
         );
     }
-
-
-    // =========================================================
-    // ASOCIAR CLIENTE
-    // ADMIN
-    // =========================================================
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{usuarioId}/cliente/{clienteId}")
@@ -102,44 +89,50 @@ public class UsuarioControlador {
             @PathVariable Long clienteId) {
 
         return ResponseEntity.ok(
-            usuarioServicio.asociarCliente(
-                usuarioId,
-                clienteId
-            )
+                usuarioServicio.asociarCliente(
+                        usuarioId,
+                        clienteId
+                )
         );
     }
-
-
-    // =========================================================
-    // DESVINCULAR CLIENTE
-    // ADMIN
-    // =========================================================
-
+    @PreAuthorize("hasAnyRole('ADMIN', 'USUARIO')")
+    @GetMapping("/perfil")
+    public ResponseEntity<Usuario> obtenerPerfil(Authentication authentication) {
+        String username = authentication.getName();
+        return ResponseEntity.ok(
+                usuarioServicio.buscarPorUsername(username)
+        );
+   }
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{usuarioId}/cliente")
     public ResponseEntity<Usuario> desvincularCliente(
             @PathVariable Long usuarioId) {
-
         return ResponseEntity.ok(
-            usuarioServicio.desvincularCliente(
-                usuarioId
-            )
+                usuarioServicio.desvincularCliente(
+                        usuarioId
+                )
         );
     }
-
-
-    // =========================================================
-    // ELIMINAR USUARIO
-    // ADMIN
-    // =========================================================
-
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminarUsuario(
             @PathVariable Long id) {
-
         usuarioServicio.eliminarUsuario(id);
-
         return ResponseEntity.noContent().build();
+    }
+    @PreAuthorize("hasAnyRole('ADMIN', 'USUARIO')")
+    @PutMapping("/perfil")
+    public ResponseEntity<Usuario> actualizarPerfil(
+                Authentication authentication,
+                @RequestBody Usuario usuarioActualizado) {
+        String username = authentication.getName();
+        Usuario usuario =
+                usuarioServicio.buscarPorUsername(username);
+        Usuario actualizado =
+                usuarioServicio.actualizarPerfil(
+                        usuario.getId(),
+                        usuarioActualizado
+                );
+        return ResponseEntity.ok(actualizado);
     }
 }
